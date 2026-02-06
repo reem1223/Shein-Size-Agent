@@ -8,7 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 
-# פרופיל המידות המדויק שלך (בס"מ)
+# הגדרות המידות שלך (בס"מ)
 MY_PROFILE = {
     "bust": 104.5, "waist": 103, "hips": 109.5,
     "inseam": 76, "total_length": 80, "shoes": 27.3
@@ -23,54 +23,38 @@ def analyze():
     data = request.json
     url = data.get('url')
     
-    # הגדרות Chrome לעבודה בשרת ענן (Render)
+    # הגדרות Chrome לעבודה בשרת ענן
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    # התחזות לדפדפן רגיל כדי למנוע חסימה
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
     driver = None
     try:
+        # אתחול הדפדפן
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
-        driver.get(url)
-        time.sleep(5) # זמן טעינה לאתר SHEIN
-
-        # נתוני סימולציה מבוססים על המידות שלך
-        # במציאות כאן יבוצע חילוץ נתונים מה-HTML של הדף
-        results = [
-            {
-                "size": "L", 
-                "percent": 91, 
-                "details": f"חזה: גדול ב-0.5 ס\"מ ({105}) | מותניים: התאמה מושלמת ({103})"
-            },
-            {
-                "size": "XL", 
-                "percent": 86, 
-                "details": f"חזה: גדול ב-3.5 ס\"מ ({108}) | מותניים: גדול ב-2.0 ס\"מ ({105})"
-            },
-            {
-                "size": "M", 
-                "percent": 74, 
-                "details": f"חזה: קטן ב-2.5 ס\"מ ({102}) | מותניים: קטן ב-1.5 ס\"מ ({101.5})"
-            }
-        ]
-        
-        # החזרת התוצאות ממוינות מהגבוה לנמוך
-        return jsonify({"options": sorted(results, key=lambda x: x['percent'], reverse=True)})
+        # סימולציית ניתוח (כאן תתבצע הגלישה האמיתית בעתיד)
+        if url:
+            # שלוש תוצאות ממוינות לפי התאמה
+            results = [
+                {"size": "L", "percent": 91, "details": "חזה: +0.5 ס\"מ | מותניים: התאמה מושלמת"},
+                {"size": "XL", "percent": 86, "details": "חזה: +3.5 ס\"מ | מותניים: +2.0 ס\"מ"},
+                {"size": "M", "percent": 74, "details": "חזה: -2.5 ס\"מ | מותניים: -1.5 ס\"מ"}
+            ]
+            return jsonify({"options": results})
+        return jsonify({"error": "URL missing"}), 400
 
     except Exception as e:
-        print(f"Server Error: {e}")
-        return jsonify({"error": "הסוכן לא הצליח לגשת לנתוני האתר"}), 500
+        return jsonify({"error": str(e)}), 500
     finally:
         if driver:
             driver.quit()
 
 if __name__ == '__main__':
-    # הגדרת פורט שמתאימה ל-Render
+    # התאמה לפורט של Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
