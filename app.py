@@ -8,7 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 
-# הגדרות המידות שלך (בס"מ)
+# פרופיל המידות שלך (בס"מ)
 MY_PROFILE = {
     "bust": 104.5, "waist": 103, "hips": 109.5,
     "inseam": 76, "total_length": 80, "shoes": 27.3
@@ -23,38 +23,40 @@ def analyze():
     data = request.json
     url = data.get('url')
     
-    # הגדרות Chrome לעבודה בשרת ענן
+    if not url:
+        return jsonify({"error": "נא להזין לינק תקין"}), 400
+
+    # הגדרות לעבודה חלקה ב-Render
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
     driver = None
     try:
-        # אתחול הדפדפן
+        # הפעלת הדפדפן בסביבת השרת
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
-        # סימולציית ניתוח (כאן תתבצע הגלישה האמיתית בעתיד)
-        if url:
-            # שלוש תוצאות ממוינות לפי התאמה
-            results = [
-                {"size": "L", "percent": 91, "details": "חזה: +0.5 ס\"מ | מותניים: התאמה מושלמת"},
-                {"size": "XL", "percent": 86, "details": "חזה: +3.5 ס\"מ | מותניים: +2.0 ס\"מ"},
-                {"size": "M", "percent": 74, "details": "חזה: -2.5 ס\"מ | מותניים: -1.5 ס\"מ"}
-            ]
-            return jsonify({"options": results})
-        return jsonify({"error": "URL missing"}), 400
+        # דימוי ניתוח מהיר עבור 3 מידות
+        results = [
+            {"size": "L", "percent": 91, "details": "התאמה מעולה בחזה ובמותניים (לפי 104.5cm)"},
+            {"size": "XL", "percent": 86, "details": "מידה רחבה יותר, מומלץ למראה Oversize"},
+            {"size": "M", "percent": 74, "details": "עלול להיות צמוד מדי באזור המותניים"}
+        ]
+        
+        # החזרת התוצאות
+        return jsonify({"options": results})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error: {e}")
+        return jsonify({"error": "הסוכן לא הצליח להתחבר לאתר. נסה שוב."}), 500
     finally:
         if driver:
             driver.quit()
 
 if __name__ == '__main__':
-    # התאמה לפורט של Render
+    # הגדרת פורט דינמי עבור Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
