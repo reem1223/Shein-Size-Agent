@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>SHEIN Size Agent</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        .main-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        input { width: 90%; padding: 12px; margin: 15px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; }
+        button { background: #000; color: white; border: none; padding: 12px 30px; border-radius: 10px; cursor: pointer; font-size: 18px; transition: 0.3s; }
+        button:hover { background: #333; }
+        
+        .result-item { background: #fff; margin-top: 15px; padding: 15px; border-radius: 12px; border: 1px solid #eee; text-align: right; }
+        .best-match { border: 2px solid #2ecc71; background: #f0fff4; }
+        
+        .progress-bg { background: #eee; border-radius: 10px; height: 15px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 1s ease-in-out; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 5px; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
+        .best-badge { background: #2ecc71; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="main-card">
+        <h2>סוכן המידות האישי 🤖</h2>
+        <p>הדבק לינק של SHEIN וקבל ניתוח מידות</p>
+        <input type="text" id="urlInput" placeholder="https://il.shein.com/...">
+        <br>
+        <button onclick="runAgent()">נתח מוצר</button>
+        
+        <div id="loading" style="display:none; margin-top: 20px;">ה-Agent סורק את האתר...</div>
+        <div id="resultsList" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        async function runAgent() {
+            const url = document.getElementById('urlInput').value;
+            if(!url) return alert("נא להדביק לינק!");
+
+            document.getElementById('loading').style.display = "block";
+            document.getElementById('resultsList').innerHTML = "";
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: url})
+                });
+                
+                const data = await response.json();
+                document.getElementById('loading').style.display = "none";
+
+                if(data.error) {
+                    document.getElementById('resultsList').innerHTML = "שגיאה בחיבור לאתר.";
+                    return;
+                }
+
+                data.options.forEach((opt, index) => {
+                    const isBest = index === 0;
+                    let color = opt.percent > 85 ? "#2ecc71" : (opt.percent > 60 ? "#f1c40f" : "#e74c3c");
+                    
+                    const div = document.createElement('div');
+                    div.className = `result-item ${isBest ? 'best-match' : ''}`;
+                    div.innerHTML = `
+                        ${isBest ? '<span class="badge best-badge">ההמלצה שלנו</span>' : ''}
+                        <div><strong>מידה: ${opt.size}</strong> (${opt.percent}% התאמה)</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 5px;">${opt.details}</div>
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: ${opt.percent}%; background: ${color};"></div>
+                        </div>
+                    `;
+                    document.getElementById('resultsList').appendChild(div);
+                });
+
+            } catch (e) {
+                alert("תקשורת נכשלה");
+            }
+        }
+    </script>
+</body>
+</html>
