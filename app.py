@@ -1,9 +1,10 @@
+import os
+import time
 from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-import time
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ MY_PROFILE = {
 }
 
 def calculate_match(product_sizes, my_sizes):
-    """מחשב ציון התאמה באחוזים ובונה פירוט"""
+    """מחשב ציון התאמה ובונה פירוט השוואה"""
     total_diff = 0
     count = 0
     details = []
@@ -39,17 +40,23 @@ def analyze():
     data = request.json
     url = data.get('url')
     
-    options = Options()
-    options.add_argument("--headless")
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-
+    # הגדרות Chrome לעבודה בענן (Render/Heroku)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    
+    driver = None
     try:
+        # הפעלת הדפדפן
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
         driver.get(url)
-        time.sleep(5) # המתנה לטעינה
+        time.sleep(5) # המתנה לטעינת האתר
 
-        # כאן ה-Agent אמור לשלוף את הנתונים מהטבלה. 
-        # לצורך ההדגמה, הנה נתונים שמדמים 3 מידות שונות מהאתר:
+        # נתוני סימולציה (כאן יבוא החילוץ האמיתי מה-HTML בהמשך)
         mock_data = [
             {"size": "M", "dims": {"bust": 102, "waist": 100}},
             {"size": "L", "dims": {"bust": 106, "waist": 104}},
@@ -65,15 +72,19 @@ def analyze():
                 "details": detail_str
             })
         
-        # מיון לפי אחוז התאמה והחזרת 3 התוצאות הכי טובות
+        # מיון לפי אחוזי התאמה
         sorted_results = sorted(all_results, key=lambda x: x['percent'], reverse=True)[:3]
         
         return jsonify({"options": sorted_results})
 
     except Exception as e:
-        return jsonify({"error": str(e)})
+        print(f"Server Error: {e}")
+        return jsonify({"error": str(e)}), 500
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # התאמה לפורט של Render
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
